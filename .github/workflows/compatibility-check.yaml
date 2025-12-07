@@ -49,7 +49,7 @@ jobs:
           if [ "${{ runner.os }}" == "Linux" ]; then
             sudo apt update
             # Install g++ and the OpenGL development libraries
-            sudo apt install -y g++ libgl1-mesa-dev
+            sudo apt install -y g++ libgl1-mesa-dev libxrandr-dev libxi-dev
           fi
           chmod +x ${{ matrix.premake_path }}
 
