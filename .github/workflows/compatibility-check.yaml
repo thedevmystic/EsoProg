@@ -10,7 +10,7 @@ on:
       - main
       - feat/**
       - fix/**
-    pull_request:
+  pull_request:
     branches:
       - main
 
