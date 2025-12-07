@@ -1,0 +1,61 @@
+# Path: .github/workflows/compatibility-check.yaml
+# Desc: Premake Project Files Generation Workflow
+# Auth: thedevmystic <thedevmystic@gmail.com>
+name: Compatibility Check
+
+on:
+  push: # Trigger on pushes
+    branches:
+      - main
+      - feat/*
+      - feat/**
+      - fix/*
+      - fix/**
+  workflow_dispatch: # Allow manual trigger
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            os_name: windows
+            premake_path: Vendor/Binaries/Premake/Windows/premake5.exe
+            premake_action: vs2022
+            build_command: msbuild EsoProg.sln /p:Configuration=Release /p:Platform=x64
+          - os: ubuntu-latest
+            os_name: linux
+            premake_path: Vendor/Binaries/Premake/Linux/premake5
+            premake_action: gmake
+            build_command: make config=release
+          - os: macos-latest
+            os_name: macos
+            premake_path: Vendor/Binaries/Premake/macOS/premake5
+            premake_action: gmake
+            build_command: make config=release
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Setup/Permissions steps
+      - name: Install Linux/macOS Dependencies & Set Permissions
+        if: runner.os != 'Windows'
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then sudo apt update && sudo apt install -y g++; fi
+          chmod +x ${{ matrix.premake_path }}
+
+      - name: Generate Project Files (Release)
+        run: ${{ matrix.premake_path }} ${{ matrix.premake_action }} --file="Build.lua"
+        working-directory: ${{ github.workspace }}
+
+      - name: Build Executable (Release)
+        run: ${{ matrix.build_command }}
+
+# TODO: Currently this workflow only generate executable
+# When we have tests, add test step here.

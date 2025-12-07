@@ -1,0 +1,55 @@
+# Path: .github/workflows/generate-premake-project-files.yaml
+# Desc: Premake Project Files Generation Workflow
+# Auth: thedevmystic <thedevmystic@gmail.com>
+name: Generate Premake Project Files
+
+on:
+  workflow_dispatch: # Only runs when manually triggered
+
+jobs:
+  generate-project-files:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            os_name: windows
+            premake_path: Vendor/Binaries/Premake/Windows/premake5.exe
+            premake_action: vs2022
+            archive_path: '*.sln **/*.vcxproj'
+          - os: ubuntu-latest
+            os_name: linux
+            premake_path: Vendor/Binaries/Premake/Linux/premake5
+            premake_action: gmake
+            archive_path: 'Makefile **/Makefile'
+          - os: macos-latest
+            os_name: macos
+            premake_path: Vendor/Binaries/Premake/macOS/premake5
+            premake_action: gmake
+            archive_path: 'Makefile **/Makefile'
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Set execute permission for Linux/macOS binaries
+      - name: Set Premake Permissions
+        if: runner.os != 'Windows'
+        run: chmod +x ${{ matrix.premake_path }}
+
+      # Run Premake to generate project files
+      - name: Generate Project Files
+        run: |
+          echo "Generating Project Files for ${{ matrix.os_name }} using ${{ matrix.premake_path }}..."
+          ${{ matrix.premake_path }} ${{ matrix.premake_action }} --file="Build.lua"
+        working-directory: ${{ github.workspace }}
+
+      # Archive the generated project files
+      - name: Archive Project Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: premake-project-files-${{ matrix.os_name }}
+          path: ${{ matrix.archive_path }}
+          if-no-files-found: warn

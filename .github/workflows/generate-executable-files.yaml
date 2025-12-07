@@ -1,0 +1,60 @@
+# Path: .github/workflows/generate-executable-files.yaml
+# Desc: Premake Project Files Generation Workflow
+# Auth: thedevmystic <thedevmystic@gmail.com>
+name: Generate Executable Files
+
+on:
+  push:
+    tags: # Trigger only when a new version tag is pushed
+      - 'v*'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  generate-executable:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            os_name: windows
+            premake_path: Vendor/Binaries/Premake/Windows/premake5.exe
+            premake_action: vs2022
+            build_command: msbuild EsoProg.sln /p:Configuration=Release /p:Platform=x64
+            archive_ext: .exe
+          - os: ubuntu-latest
+            os_name: linux
+            premake_path: Vendor/Binaries/Premake/Linux/premake5
+            premake_action: gmake
+            build_command: make config=release
+            archive_ext: ''
+          - os: macos-latest
+            os_name: macos
+            premake_path: Vendor/Binaries/Premake/macOS/premake5
+            premake_action: gmake
+            build_command: make config=release
+            archive_ext: ''
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Setup/Permissions steps
+      - name: Install Linux/macOS Dependencies & Set Permissions
+        if: runner.os != 'Windows'
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then sudo apt update && sudo apt install -y g++; fi
+          chmod +x ${{ matrix.premake_path }}
+
+      - name: Generate Project Files (Release)
+        run: ${{ matrix.premake_path }} ${{ matrix.premake_action }} --file="Build.lua"
+        working-directory: ${{ github.workspace }}
+
+      - name: Build Executable (Release)
+        run: ${{ matrix.build_command }}
+
+      - name: Archive Final Release Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: EsoProg-Release-${{ matrix.os_name }}
+          path: bin/Release*/EsoProg${{ matrix.archive_ext }}
