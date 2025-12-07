@@ -7,9 +7,7 @@ on:
   push: # Trigger on pushes
     branches:
       - main
-      - feat/*
       - feat/**
-      - fix/*
       - fix/**
   workflow_dispatch: # Allow manual trigger
   pull_request:
@@ -40,32 +38,48 @@ jobs:
             build_command: make config=release
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repository and Submodules
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # Setup/Permissions steps
+---
+
       - name: Install Linux/macOS Dependencies & Set Permissions
         if: runner.os != 'Windows'
         run: |
           if [ "${{ runner.os }}" == "Linux" ]; then sudo apt update && sudo apt install -y g++; fi
           chmod +x ${{ matrix.premake_path }}
 
+---
+
       - name: Generate Project Files (Release)
         run: ${{ matrix.premake_path }} ${{ matrix.premake_action }} --file="Build.lua"
         working-directory: ${{ github.workspace }}
 
-      - name: Build Executable (Release)
-        run: |
-          if ("${{ runner.os }}" == "Windows") {
-            # Find and call msbuild using vswhere
-            $msbuildPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -find MSBuild\Current\Bin\amd64\MSBuild.exe
-            & $msbuildPath EsoProg.sln /p:Configuration=Release /p:Platform=x64
-          } else {
-            # Existing command for Linux/macOS
-            ${{ matrix.build_command }}
-          }
+---
 
-# TODO: Currently this workflow only generate executable
-# When we have tests, add test step here.
+      # ----------------------------------------------------------------------
+      # BUILD STEP 1: Windows
+      # ----------------------------------------------------------------------
+      - name: Build Executable (Release) - Windows MSBuild
+        if: runner.os == 'Windows'
+        shell: cmd # Forces the use of the Command Prompt shell
+        run: |
+          REM Find the Visual Studio installation path
+          for /f "usebackq tokens=*" %%i in (`"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set VSPATH=%%i
+          
+          REM Execute the environment setup script to find MSBuild in PATH
+          call "%VSPATH%\VC\Auxiliary\Build\vcvars64.bat"
+
+          REM Run the msbuild command in the same shell session
+          ${{ matrix.build_command }}
+
+---
+
+      # ----------------------------------------------------------------------
+      # BUILD STEP 2: Linux/macOS (Make)
+      # ----------------------------------------------------------------------
+      - name: Build Executable (Release) - Unix Make
+        if: runner.os != 'Windows'
+        run: ${{ matrix.build_command }}
