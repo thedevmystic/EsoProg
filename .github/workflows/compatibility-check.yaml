@@ -57,7 +57,15 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Build Executable (Release)
-        run: ${{ matrix.build_command }}
+        run: |
+          if ("${{ runner.os }}" == "Windows") {
+            # Find and call msbuild using vswhere
+            $msbuildPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -find MSBuild\Current\Bin\amd64\MSBuild.exe
+            & $msbuildPath EsoProg.sln /p:Configuration=Release /p:Platform=x64
+          } else {
+            # Existing command for Linux/macOS
+            ${{ matrix.build_command }}
+          }
 
 # TODO: Currently this workflow only generate executable
 # When we have tests, add test step here.
