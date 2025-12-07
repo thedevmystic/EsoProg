@@ -1,5 +1,5 @@
 project "SmartEnums"
-   kind "StaticLib"
+   kind "Utility"
    language "C++"
    cppdialect "C++20"
    targetdir "bin/%{cfg.buildcfg}"
