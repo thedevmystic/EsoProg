@@ -42,6 +42,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
 
       # Setup/Permissions steps
       - name: Install Linux/macOS Dependencies & Set Permissions
