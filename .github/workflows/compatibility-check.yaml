@@ -46,7 +46,11 @@ jobs:
       - name: Install Linux/macOS Dependencies & Set Permissions
         if: runner.os != 'Windows'
         run: |
-          if [ "${{ runner.os }}" == "Linux" ]; then sudo apt update && sudo apt install -y g++; fi
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            sudo apt update
+            # Install g++ and the OpenGL development libraries
+            sudo apt install -y g++ libgl1-mesa-dev
+          fi
           chmod +x ${{ matrix.premake_path }}
 
       - name: Generate Project Files (Release)
