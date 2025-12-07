@@ -14,6 +14,11 @@ project "Logger"
       "%{wks.location}/%{externals.spdlog}/include"
    }
 
+   links
+   {
+      "spdlog"
+   }
+
    targetdir ("%{wks.location}/bin/%{prj.name}/" .. OutputDir)
    objdir ("%{wks.location}/bin/%{prj.name}/" .. OutputDir .. "/Intermediates")
 
